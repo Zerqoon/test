@@ -1,144 +1,2129 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createCanvas, loadImage, GlobalFonts } from '@napi-rs/canvas';
-import { progressForXp, levelForXp } from './level.js';
+import {
+  createCanvas,
+  loadImage,
+  GlobalFonts,
+} from '@napi-rs/canvas';
 
-const fonts = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../assets/fonts');
-GlobalFonts.registerFromPath(path.join(fonts, 'DejaVuSans.ttf'), 'Guild');
-GlobalFonts.registerFromPath(path.join(fonts, 'DejaVuSans-Bold.ttf'), 'Guild Bold');
-const C = { bg: '#0B0B14', panel: '#171726', purple: '#A76CFF', pink: '#F17AD9', lime: '#C5FF60', muted: '#9396AD', white: '#F7F5FF', border: '#323247' };
-const fmt = n => new Intl.NumberFormat('pl-PL').format(n);
+import {
+  progressForXp,
+  levelForXp,
+} from './level.js';
 
-function round(ctx, x, y, w, h, r, color, stroke = null) {
-  ctx.beginPath(); ctx.roundRect(x,y,w,h,r); ctx.fillStyle=color; ctx.fill();
-  if (stroke) { ctx.lineWidth=1.5; ctx.strokeStyle=stroke; ctx.stroke(); }
+
+/* ─────────────────────────────────────────────────────────────
+   WYMIAR ZERQONA — CANVAS SYSTEM
+───────────────────────────────────────────────────────────── */
+
+const __dirname = path.dirname(
+  fileURLToPath(import.meta.url),
+);
+
+const fontsPath = path.resolve(
+  __dirname,
+  '../assets/fonts',
+);
+
+GlobalFonts.registerFromPath(
+  path.join(fontsPath, 'DejaVuSans.ttf'),
+  'Zerqona',
+);
+
+GlobalFonts.registerFromPath(
+  path.join(fontsPath, 'DejaVuSans-Bold.ttf'),
+  'Zerqona Bold',
+);
+
+
+/* ─────────────────────────────────────────────────────────────
+   THEME
+───────────────────────────────────────────────────────────── */
+
+const C = {
+  bg: '#08080D',
+  bg2: '#0D0D16',
+
+  panel: '#11111B',
+  panel2: '#171724',
+  panel3: '#1C1C2C',
+
+  purple: '#9D5CFF',
+  purple2: '#C18AFF',
+  purpleDark: '#5A2B9C',
+
+  pink: '#EB6AD6',
+
+  lime: '#BFFF69',
+
+  white: '#F7F5FF',
+  softWhite: '#DDD8E9',
+
+  muted: '#89899B',
+  muted2: '#626273',
+
+  border: '#2B2B3D',
+  borderLight: '#3B3150',
+
+  danger: '#FF667D',
+
+  gold: '#FFD45A',
+  silver: '#D9D9E2',
+  bronze: '#D8905E',
+};
+
+const fmt = (number) =>
+  new Intl.NumberFormat('pl-PL').format(
+    Number(number || 0),
+  );
+
+
+/* ─────────────────────────────────────────────────────────────
+   HELPERS
+───────────────────────────────────────────────────────────── */
+
+function font(
+  ctx,
+  size,
+  bold = false,
+) {
+  ctx.font =
+    `${size}px '${bold ? 'Zerqona Bold' : 'Zerqona'}'`;
 }
-function text(ctx, value, x, y, size, color=C.white, bold=false, maxWidth=null) {
-  ctx.font = `${size}px '${bold ? 'Guild Bold' : 'Guild'}'`;
-  ctx.fillStyle=color; ctx.textBaseline='alphabetic';
-  const str=String(value);
-  if (!maxWidth || ctx.measureText(str).width <= maxWidth) { ctx.fillText(str,x,y); return; }
-  let clipped=str;
-  while (clipped.length && ctx.measureText(`${clipped}…`).width>maxWidth) clipped=clipped.slice(0,-1);
-  ctx.fillText(`${clipped}…`,x,y);
+
+function roundedPath(
+  ctx,
+  x,
+  y,
+  w,
+  h,
+  radius,
+) {
+  ctx.beginPath();
+  ctx.roundRect(
+    x,
+    y,
+    w,
+    h,
+    radius,
+  );
 }
-function base(w=1080,h=500,label='COMMUNITY / PROFILE') {
-  const cv=createCanvas(w,h), ctx=cv.getContext('2d');
-  const bg=ctx.createLinearGradient(0,0,w,h); bg.addColorStop(0,'#090914'); bg.addColorStop(.58,'#161225'); bg.addColorStop(1,'#0B1020');
-  ctx.fillStyle=bg; ctx.fillRect(0,0,w,h);
-  for (const [x,y,r,color] of [[100,80,270,'rgba(169,91,255,.13)'],[w-90,90,280,'rgba(70,105,255,.15)'],[w*.65,h,230,'rgba(230,69,176,.09)']]) {
-    const glow=ctx.createRadialGradient(x,y,0,x,y,r); glow.addColorStop(0,color);glow.addColorStop(1,'transparent');ctx.fillStyle=glow;ctx.fillRect(x-r,y-r,r*2,r*2);
+
+function round(
+  ctx,
+  x,
+  y,
+  w,
+  h,
+  radius,
+  fill,
+  stroke = null,
+  strokeWidth = 1,
+) {
+  roundedPath(
+    ctx,
+    x,
+    y,
+    w,
+    h,
+    radius,
+  );
+
+  ctx.fillStyle = fill;
+  ctx.fill();
+
+  if (stroke) {
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = strokeWidth;
+    ctx.stroke();
   }
-  ctx.strokeStyle='rgba(189,153,255,.045)';ctx.lineWidth=1;
-  for(let x=-h;x<w+h;x+=34){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x+h,h);ctx.stroke();}
-  ctx.save(); ctx.translate(w-180,130);ctx.rotate(-.25);
-  for(let i=0;i<4;i++){ctx.strokeStyle=`rgba(183,119,255,${.12-i*.02})`;ctx.lineWidth=2;ctx.strokeRect(-90+i*21,-90+i*21,180-i*42,180-i*42);}
+}
+
+function line(
+  ctx,
+  x1,
+  y1,
+  x2,
+  y2,
+  color,
+  width = 1,
+) {
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width;
+  ctx.stroke();
+}
+
+function text(
+  ctx,
+  value,
+  x,
+  y,
+  size,
+  color = C.white,
+  bold = false,
+  maxWidth = null,
+  align = 'left',
+) {
+  const str = String(
+    value ?? '',
+  );
+
+  font(
+    ctx,
+    size,
+    bold,
+  );
+
+  ctx.fillStyle = color;
+  ctx.textBaseline = 'alphabetic';
+  ctx.textAlign = align;
+
+  if (
+    !maxWidth ||
+    ctx.measureText(str).width <= maxWidth
+  ) {
+    ctx.fillText(
+      str,
+      x,
+      y,
+    );
+
+    ctx.textAlign = 'left';
+    return;
+  }
+
+  let clipped = str;
+
+  while (
+    clipped.length > 0 &&
+    ctx.measureText(
+      `${clipped}…`,
+    ).width > maxWidth
+  ) {
+    clipped =
+      clipped.slice(
+        0,
+        -1,
+      );
+  }
+
+  ctx.fillText(
+    `${clipped}…`,
+    x,
+    y,
+  );
+
+  ctx.textAlign = 'left';
+}
+
+function shadowCard(
+  ctx,
+  x,
+  y,
+  w,
+  h,
+  radius = 18,
+  fill = 'rgba(18,18,30,.92)',
+  stroke = C.border,
+) {
+  ctx.save();
+
+  ctx.shadowColor =
+    'rgba(0,0,0,.38)';
+
+  ctx.shadowBlur = 20;
+  ctx.shadowOffsetY = 8;
+
+  round(
+    ctx,
+    x,
+    y,
+    w,
+    h,
+    radius,
+    fill,
+    stroke,
+    1,
+  );
+
   ctx.restore();
-  ctx.fillStyle=C.purple;ctx.fillRect(0,0,w,6);
-  round(ctx,32,27,Math.min(290,w-64),35,9,'rgba(174,121,255,.14)','rgba(175,115,255,.28)');
-  text(ctx,label,48,51,13,C.purple,true);
-  text(ctx,'◆  R3V0  /  COMMUNITY',w-310,h-23,13,C.muted,true);
-  return {cv,ctx};
 }
-function metric(ctx,x,y,w,label,value,accent=C.purple){
-  round(ctx,x,y,w,111,18,'rgba(30,30,47,.88)',C.border);
-  ctx.fillStyle=accent;ctx.fillRect(x+20,y+22,4,19);
-  text(ctx,label.toUpperCase(),x+36,y+38,12,C.muted,true,w-50);
-  text(ctx,value,x+20,y+83,31,C.white,true,w-36);
+
+function glowLine(
+  ctx,
+  x,
+  y,
+  w,
+  color = C.purple,
+) {
+  ctx.save();
+
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 16;
+
+  const gradient =
+    ctx.createLinearGradient(
+      x,
+      0,
+      x + w,
+      0,
+    );
+
+  gradient.addColorStop(
+    0,
+    'rgba(157,92,255,0)',
+  );
+
+  gradient.addColorStop(
+    0.25,
+    color,
+  );
+
+  gradient.addColorStop(
+    0.75,
+    C.pink,
+  );
+
+  gradient.addColorStop(
+    1,
+    'rgba(235,106,214,0)',
+  );
+
+  ctx.fillStyle =
+    gradient;
+
+  ctx.fillRect(
+    x,
+    y,
+    w,
+    2,
+  );
+
+  ctx.restore();
 }
-async function avatar(ctx,user,x,y,r){
-  ctx.save();ctx.shadowColor='rgba(182,96,255,.75)';ctx.shadowBlur=25;
-  ctx.beginPath();ctx.arc(x,y,r+7,0,Math.PI*2);ctx.fillStyle=C.purple;ctx.fill();ctx.restore();
-  ctx.save();ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.clip();
-  const grad=ctx.createLinearGradient(x-r,y-r,x+r,y+r);grad.addColorStop(0,'#6D4DD6');grad.addColorStop(1,'#D95CC8');
-  ctx.fillStyle=grad;ctx.fillRect(x-r,y-r,r*2,r*2);
-  if(user?.avatarURL && /^https:\/\/cdn\.discord(?:app)?\.com\//.test(user.avatarURL)){
+
+function divider(
+  ctx,
+  x,
+  y,
+  w,
+) {
+  const g =
+    ctx.createLinearGradient(
+      x,
+      0,
+      x + w,
+      0,
+    );
+
+  g.addColorStop(
+    0,
+    'rgba(255,255,255,0)',
+  );
+
+  g.addColorStop(
+    0.12,
+    'rgba(255,255,255,.08)',
+  );
+
+  g.addColorStop(
+    0.88,
+    'rgba(255,255,255,.08)',
+  );
+
+  g.addColorStop(
+    1,
+    'rgba(255,255,255,0)',
+  );
+
+  ctx.fillStyle = g;
+
+  ctx.fillRect(
+    x,
+    y,
+    w,
+    1,
+  );
+}
+
+
+/* ─────────────────────────────────────────────────────────────
+   BACKGROUND
+───────────────────────────────────────────────────────────── */
+
+function base(
+  width = 1080,
+  height = 500,
+  label = 'COMMUNITY',
+) {
+  const cv =
+    createCanvas(
+      width,
+      height,
+    );
+
+  const ctx =
+    cv.getContext('2d');
+
+
+  /* BACKGROUND */
+
+  const bg =
+    ctx.createLinearGradient(
+      0,
+      0,
+      width,
+      height,
+    );
+
+  bg.addColorStop(
+    0,
+    '#07070C',
+  );
+
+  bg.addColorStop(
+    0.5,
+    '#10101B',
+  );
+
+  bg.addColorStop(
+    1,
+    '#090912',
+  );
+
+  ctx.fillStyle = bg;
+
+  ctx.fillRect(
+    0,
+    0,
+    width,
+    height,
+  );
+
+
+  /* PURPLE GLOW LEFT */
+
+  const leftGlow =
+    ctx.createRadialGradient(
+      120,
+      110,
+      0,
+      120,
+      110,
+      350,
+    );
+
+  leftGlow.addColorStop(
+    0,
+    'rgba(146,73,255,.18)',
+  );
+
+  leftGlow.addColorStop(
+    1,
+    'rgba(146,73,255,0)',
+  );
+
+  ctx.fillStyle =
+    leftGlow;
+
+  ctx.fillRect(
+    0,
+    0,
+    500,
+    500,
+  );
+
+
+  /* PINK GLOW RIGHT */
+
+  const rightGlow =
+    ctx.createRadialGradient(
+      width - 80,
+      height * 0.35,
+      0,
+      width - 80,
+      height * 0.35,
+      360,
+    );
+
+  rightGlow.addColorStop(
+    0,
+    'rgba(205,76,207,.11)',
+  );
+
+  rightGlow.addColorStop(
+    1,
+    'rgba(205,76,207,0)',
+  );
+
+  ctx.fillStyle =
+    rightGlow;
+
+  ctx.fillRect(
+    width - 500,
+    0,
+    500,
+    height,
+  );
+
+
+  /* GRID */
+
+  ctx.save();
+
+  ctx.strokeStyle =
+    'rgba(255,255,255,.018)';
+
+  ctx.lineWidth = 1;
+
+  for (
+    let x = -height;
+    x < width + height;
+    x += 44
+  ) {
+    ctx.beginPath();
+
+    ctx.moveTo(
+      x,
+      0,
+    );
+
+    ctx.lineTo(
+      x + height,
+      height,
+    );
+
+    ctx.stroke();
+  }
+
+  ctx.restore();
+
+
+  /* DECORATIVE CIRCLES */
+
+  ctx.save();
+
+  ctx.strokeStyle =
+    'rgba(184,126,255,.055)';
+
+  ctx.lineWidth = 1;
+
+  for (
+    let r = 60;
+    r <= 230;
+    r += 42
+  ) {
+    ctx.beginPath();
+
+    ctx.arc(
+      width - 120,
+      50,
+      r,
+      0,
+      Math.PI * 2,
+    );
+
+    ctx.stroke();
+  }
+
+  ctx.restore();
+
+
+  /* TOP ACCENT */
+
+  const topAccent =
+    ctx.createLinearGradient(
+      0,
+      0,
+      width,
+      0,
+    );
+
+  topAccent.addColorStop(
+    0,
+    C.purple,
+  );
+
+  topAccent.addColorStop(
+    0.52,
+    C.pink,
+  );
+
+  topAccent.addColorStop(
+    1,
+    '#7047FF',
+  );
+
+  ctx.fillStyle =
+    topAccent;
+
+  ctx.fillRect(
+    0,
+    0,
+    width,
+    4,
+  );
+
+
+  /* HEADER BADGE */
+
+  round(
+    ctx,
+    32,
+    27,
+    Math.min(
+      340,
+      width - 64,
+    ),
+    38,
+    10,
+    'rgba(157,92,255,.10)',
+    'rgba(176,119,255,.27)',
+  );
+
+  ctx.fillStyle =
+    C.purple;
+
+  ctx.fillRect(
+    46,
+    39,
+    3,
+    14,
+  );
+
+  text(
+    ctx,
+    label,
+    60,
+    53,
+    13,
+    C.purple2,
+    true,
+    290,
+  );
+
+
+  /* FOOTER BRANDING */
+
+  text(
+    ctx,
+    '◆ WYMIAR ZERQONA',
+    width - 34,
+    height - 22,
+    12,
+    C.muted2,
+    true,
+    null,
+    'right',
+  );
+
+  return {
+    cv,
+    ctx,
+  };
+}
+
+
+/* ─────────────────────────────────────────────────────────────
+   AVATAR
+───────────────────────────────────────────────────────────── */
+
+async function avatar(
+  ctx,
+  user,
+  x,
+  y,
+  radius,
+  options = {},
+) {
+  const {
+    ring = C.purple,
+    glow = true,
+  } = options;
+
+  ctx.save();
+
+  if (glow) {
+    ctx.shadowColor =
+      'rgba(157,92,255,.65)';
+
+    ctx.shadowBlur = 25;
+  }
+
+  ctx.beginPath();
+
+  ctx.arc(
+    x,
+    y,
+    radius + 6,
+    0,
+    Math.PI * 2,
+  );
+
+  const ringGradient =
+    ctx.createLinearGradient(
+      x - radius,
+      y - radius,
+      x + radius,
+      y + radius,
+    );
+
+  ringGradient.addColorStop(
+    0,
+    ring,
+  );
+
+  ringGradient.addColorStop(
+    1,
+    C.pink,
+  );
+
+  ctx.fillStyle =
+    ringGradient;
+
+  ctx.fill();
+
+  ctx.restore();
+
+
+  ctx.save();
+
+  ctx.beginPath();
+
+  ctx.arc(
+    x,
+    y,
+    radius,
+    0,
+    Math.PI * 2,
+  );
+
+  ctx.clip();
+
+
+  /* FALLBACK */
+
+  const fallback =
+    ctx.createLinearGradient(
+      x - radius,
+      y - radius,
+      x + radius,
+      y + radius,
+    );
+
+  fallback.addColorStop(
+    0,
+    '#4B2D84',
+  );
+
+  fallback.addColorStop(
+    1,
+    '#AA4A9D',
+  );
+
+  ctx.fillStyle =
+    fallback;
+
+  ctx.fillRect(
+    x - radius,
+    y - radius,
+    radius * 2,
+    radius * 2,
+  );
+
+
+  let drawn = false;
+
+  if (
+    user?.avatarURL &&
+    /^https:\/\/cdn\.discord(?:app)?\.com\//.test(
+      user.avatarURL,
+    )
+  ) {
     try {
-      const reply=await fetch(user.avatarURL,{signal:AbortSignal.timeout(4500)});
-      if(reply.ok && Number(reply.headers.get('content-length') || 0)<5_000_000) {
-        const bytes=Buffer.from(await reply.arrayBuffer());
-        if(bytes.length<5_000_000) ctx.drawImage(await loadImage(bytes),x-r,y-r,r*2,r*2);
+      const response =
+        await fetch(
+          user.avatarURL,
+          {
+            signal:
+              AbortSignal.timeout(
+                4500,
+              ),
+          },
+        );
+
+      if (response.ok) {
+        const size =
+          Number(
+            response.headers.get(
+              'content-length',
+            ) || 0,
+          );
+
+        if (
+          !size ||
+          size < 5_000_000
+        ) {
+          const bytes =
+            Buffer.from(
+              await response.arrayBuffer(),
+            );
+
+          if (
+            bytes.length <
+            5_000_000
+          ) {
+            const image =
+              await loadImage(
+                bytes,
+              );
+
+            ctx.drawImage(
+              image,
+              x - radius,
+              y - radius,
+              radius * 2,
+              radius * 2,
+            );
+
+            drawn = true;
+          }
+        }
       }
-    } catch { /* gradient avatar is the fallback */ }
-  } else {
-    text(ctx,(user?.name || '?').slice(0,1).toUpperCase(),x-r*.38,y+r*.4,r*.95,C.white,true);
+    } catch {
+      // fallback remains
+    }
   }
+
+  if (!drawn) {
+    const letter =
+      (
+        user?.name ||
+        user?.username ||
+        '?'
+      )
+        .slice(
+          0,
+          1,
+        )
+        .toUpperCase();
+
+    text(
+      ctx,
+      letter,
+      x,
+      y + radius * 0.34,
+      radius * 0.9,
+      C.white,
+      true,
+      null,
+      'center',
+    );
+  }
+
+  ctx.restore();
+
+
+  /* SMALL STATUS DOT */
+
+  ctx.save();
+
+  ctx.beginPath();
+
+  ctx.arc(
+    x + radius * 0.7,
+    y + radius * 0.7,
+    Math.max(
+      6,
+      radius * 0.12,
+    ),
+    0,
+    Math.PI * 2,
+  );
+
+  ctx.fillStyle =
+    C.lime;
+
+  ctx.fill();
+
+  ctx.lineWidth = 3;
+  ctx.strokeStyle =
+    C.bg;
+
+  ctx.stroke();
+
   ctx.restore();
 }
 
-export async function profileCard(user,row,rank,roleName='Wędrowiec'){
-  const {cv,ctx}=base(1080,505,'DOSSIER GRACZA   /   PROFIL');
-  await avatar(ctx,user,133,190,69);
-  text(ctx,user.name,230,154,35,C.white,true,790);
-  text(ctx,`@${user.username || user.name}`,232,186,16,C.muted,false,760);
-  round(ctx,230,210,Math.min(315,Math.max(180,roleName.length*13)),38,10,'rgba(175,120,255,.19)','rgba(175,120,255,.31)');
-  text(ctx,`◆  ${roleName.toUpperCase()}`,248,236,14,C.purple,true);
-  if(row.title) text(ctx,row.title,33,303,17,C.lime,true,800);
-  metric(ctx,32,330,324,'Poziom',String(progressForXp(row.xp).level).padStart(2,'0'),C.purple);
-  metric(ctx,378,330,324,'Ranking serwera',`#${fmt(rank)}`,C.lime);
-  metric(ctx,724,330,324,'Monety',fmt(row.balance),C.pink);
-  const progress=progressForXp(row.xp);
-  round(ctx,231,273,809,16,8,'rgba(118,107,148,.31)');
-  if(progress.fraction>0){const grad=ctx.createLinearGradient(231,0,1040,0);grad.addColorStop(0,C.purple);grad.addColorStop(1,C.pink);round(ctx,231,273,Math.max(8,809*progress.fraction),16,8,grad);}
-  text(ctx,`XP ${fmt(progress.current)} / ${fmt(progress.required)}`,232,263,13,C.muted,true);
-  text(ctx,`WIADOMOŚCI  ${fmt(row.messages)}     •     VC  ${Math.floor(row.voice_seconds/3600)} H`,34,473,13,C.muted,true);
-  return cv.toBuffer('image/png');
-}
 
-export async function rankCard(user,row,rank){
-  const {cv,ctx}=base(1080,385,'RANKING / PROGRES');
-  await avatar(ctx,user,126,172,68);
-  text(ctx,user.name,228,145,34,C.white,true,775);
-  const p=progressForXp(row.xp);
-  text(ctx,`POZIOM ${String(p.level).padStart(2,'0')}`,228,197,30,C.lime,true);
-  text(ctx,`#${fmt(rank)} NA SERWERZE`,797,198,20,C.purple,true);
-  round(ctx,43,257,994,23,12,'rgba(120,108,151,.34)');
-  if(p.fraction>0){const gradient=ctx.createLinearGradient(43,0,1037,0);gradient.addColorStop(0,C.purple);gradient.addColorStop(1,C.lime);round(ctx,43,257,Math.max(12,994*p.fraction),23,12,gradient);}
-  text(ctx,`${fmt(p.current)} / ${fmt(p.required)} XP DO NASTĘPNEGO POZIOMU`,44,308,16,C.muted,true);
-  text(ctx,`${fmt(row.xp)} XP ŁĄCZNIE`,43,344,15,C.white,true);
-  return cv.toBuffer('image/png');
-}
+/* ─────────────────────────────────────────────────────────────
+   METRIC CARD
+───────────────────────────────────────────────────────────── */
 
-export async function economyCard(user,row,rank,inventory=[]){
-  const {cv,ctx}=base(1080,475,'EKONOMIA / PORTFEL');
-  await avatar(ctx,user,117,169,65);
-  text(ctx,user.name,220,142,32,C.white,true,780);
-  text(ctx,'TWÓJ SKARBIEC',220,182,16,C.purple,true);
-  round(ctx,32,277,650,141,20,'rgba(32,30,52,.92)',C.border);
-  text(ctx,'SALDO KONTA',58,317,15,C.muted,true);
-  text(ctx,`${fmt(row.balance)}  ◈`,58,379,48,C.lime,true,600);
-  metric(ctx,708,277,338,'Miejsce w rankingu',`#${rank}`,C.pink);
-  text(ctx,`PRZEDMIOTY W PLECAKU: ${inventory.reduce((s,i)=>s+i.quantity,0)}`,710,407,13,C.muted,true);
-  text(ctx,'/daily    /praca    /sklep    /przelew',34,452,14,C.muted,true);
-  return cv.toBuffer('image/png');
-}
+function metric(
+  ctx,
+  x,
+  y,
+  width,
+  label,
+  value,
+  accent = C.purple,
+  subtitle = null,
+) {
+  shadowCard(
+    ctx,
+    x,
+    y,
+    width,
+    111,
+    17,
+  );
 
-export async function topCard(rows,users,kind='xp'){
-  const {cv,ctx}=base(1080,174+rows.length*69,kind==='xp'?'TABLICA CHWAŁY / POZIOMY':'TABLICA CHWAŁY / MONETY');
-  text(ctx,kind==='xp'?'TOP DOŚWIADCZENIA':'TOP BOGACTWA',39,112,32,C.white,true);
-  for(let i=0;i<rows.length;i++){
-    const y=140+i*69;const row=rows[i];const usr=users[i]||{name:`Użytkownik ${row.user_id.slice(-5)}`};
-    round(ctx,35,y,1010,60,13,i<3?'rgba(47,39,72,.9)':'rgba(27,27,42,.91)',i<3?'rgba(180,127,255,.34)':C.border);
-    text(ctx,`#${String(i+1).padStart(2,'0')}`,55,y+39,21,i===0?C.lime:C.purple,true);
-    await avatar(ctx,usr,156,y+30,19);
-    text(ctx,usr.name,196,y+39,18,C.white,true,525);
-    text(ctx,kind==='xp'?`LV ${levelForXp(row.xp)}  •  ${fmt(row.xp)} XP`:`${fmt(row.balance)} ◈`,735,y+39,18,C.lime,true,280);
+  const glow =
+    ctx.createLinearGradient(
+      x,
+      y,
+      x + width,
+      y,
+    );
+
+  glow.addColorStop(
+    0,
+    accent,
+  );
+
+  glow.addColorStop(
+    1,
+    'rgba(255,255,255,0)',
+  );
+
+  ctx.fillStyle = glow;
+
+  ctx.fillRect(
+    x + 17,
+    y + 18,
+    76,
+    2,
+  );
+
+  text(
+    ctx,
+    label.toUpperCase(),
+    x + 20,
+    y + 42,
+    11,
+    C.muted,
+    true,
+    width - 40,
+  );
+
+  text(
+    ctx,
+    value,
+    x + 20,
+    y + 82,
+    29,
+    C.white,
+    true,
+    width - 40,
+  );
+
+  if (subtitle) {
+    text(
+      ctx,
+      subtitle,
+      x + width - 18,
+      y + 40,
+      10,
+      accent,
+      true,
+      width / 2,
+      'right',
+    );
   }
-  return cv.toBuffer('image/png');
 }
 
-export async function welcomeCard(user,memberCount){
-  const {cv,ctx}=base(1080,405,'NOWY GRACZ / WITAJ');
-  await avatar(ctx,user,158,208,86);
-  text(ctx,'WITAJ W SPOŁECZNOŚCI',292,150,27,C.purple,true);
-  text(ctx,user.name,290,219,38,C.white,true,730);
-  text(ctx,`Jesteś osobą numer #${fmt(memberCount)} na serwerze.`,291,268,18,C.muted,false,730);
-  text(ctx,'ROZGOŚĆ SIĘ  ◆  ZBIERAJ XP  ◆  BUDUJ SWOJĄ LEGENDĘ',290,318,14,C.lime,true,745);
-  return cv.toBuffer('image/png');
+
+/* ─────────────────────────────────────────────────────────────
+   PROGRESS BAR
+───────────────────────────────────────────────────────────── */
+
+function progressBar(
+  ctx,
+  x,
+  y,
+  width,
+  height,
+  fraction,
+  from = C.purple,
+  to = C.pink,
+) {
+  const progress =
+    Math.max(
+      0,
+      Math.min(
+        1,
+        Number(
+          fraction || 0,
+        ),
+      ),
+    );
+
+  round(
+    ctx,
+    x,
+    y,
+    width,
+    height,
+    height / 2,
+    'rgba(255,255,255,.07)',
+    'rgba(255,255,255,.04)',
+  );
+
+  if (
+    progress <= 0
+  ) {
+    return;
+  }
+
+  const valueWidth =
+    Math.max(
+      height,
+      width * progress,
+    );
+
+  const gradient =
+    ctx.createLinearGradient(
+      x,
+      0,
+      x + width,
+      0,
+    );
+
+  gradient.addColorStop(
+    0,
+    from,
+  );
+
+  gradient.addColorStop(
+    1,
+    to,
+  );
+
+  ctx.save();
+
+  ctx.shadowColor =
+    from;
+
+  ctx.shadowBlur = 12;
+
+  round(
+    ctx,
+    x,
+    y,
+    valueWidth,
+    height,
+    height / 2,
+    gradient,
+  );
+
+  ctx.restore();
 }
 
-export const userForCard = member => ({
-  name: member.displayName || member.globalName || member.username,
-  username: member.user?.username || member.username,
-  avatarURL: member.displayAvatarURL?.({ extension: 'png', size: 256 }) || member.user?.displayAvatarURL?.({extension:'png',size:256}),
-});
+
+/* ─────────────────────────────────────────────────────────────
+   PROFILE CARD
+───────────────────────────────────────────────────────────── */
+
+export async function profileCard(
+  user,
+  row,
+  rank,
+  roleName = 'Wędrowiec',
+) {
+  const {
+    cv,
+    ctx,
+  } = base(
+    1080,
+    520,
+    'PROFIL / KARTA UŻYTKOWNIKA',
+  );
+
+  const progress =
+    progressForXp(
+      row.xp,
+    );
+
+
+  /* USER SECTION */
+
+  shadowCard(
+    ctx,
+    32,
+    88,
+    1016,
+    190,
+    22,
+    'rgba(16,16,27,.78)',
+  );
+
+  await avatar(
+    ctx,
+    user,
+    134,
+    182,
+    67,
+  );
+
+  text(
+    ctx,
+    user.name,
+    230,
+    146,
+    34,
+    C.white,
+    true,
+    530,
+  );
+
+  text(
+    ctx,
+    `@${user.username || user.name}`,
+    232,
+    178,
+    15,
+    C.muted,
+    false,
+    500,
+  );
+
+
+  /* ROLE */
+
+  const roleWidth =
+    Math.min(
+      330,
+      Math.max(
+        175,
+        roleName.length * 11 + 54,
+      ),
+    );
+
+  round(
+    ctx,
+    230,
+    199,
+    roleWidth,
+    36,
+    10,
+    'rgba(157,92,255,.12)',
+    'rgba(174,117,255,.27)',
+  );
+
+  text(
+    ctx,
+    `◆ ${roleName.toUpperCase()}`,
+    248,
+    223,
+    13,
+    C.purple2,
+    true,
+    roleWidth - 34,
+  );
+
+
+  /* RANK */
+
+  text(
+    ctx,
+    'RANKING SERWERA',
+    1004,
+    130,
+    11,
+    C.muted,
+    true,
+    null,
+    'right',
+  );
+
+  text(
+    ctx,
+    `#${fmt(rank)}`,
+    1004,
+    174,
+    34,
+    C.lime,
+    true,
+    null,
+    'right',
+  );
+
+
+  /* TITLE */
+
+  if (row.title) {
+    text(
+      ctx,
+      `✦ ${row.title}`,
+      1004,
+      218,
+      15,
+      C.pink,
+      true,
+      380,
+      'right',
+    );
+  }
+
+
+  /* XP */
+
+  text(
+    ctx,
+    `POZIOM ${String(progress.level).padStart(2, '0')}`,
+    231,
+    259,
+    11,
+    C.muted,
+    true,
+  );
+
+  text(
+    ctx,
+    `${fmt(progress.current)} / ${fmt(progress.required)} XP`,
+    1004,
+    259,
+    11,
+    C.muted,
+    true,
+    null,
+    'right',
+  );
+
+  progressBar(
+    ctx,
+    231,
+    267,
+    773,
+    11,
+    progress.fraction,
+  );
+
+
+  /* METRICS */
+
+  metric(
+    ctx,
+    32,
+    306,
+    324,
+    'Poziom',
+    String(
+      progress.level,
+    ).padStart(
+      2,
+      '0',
+    ),
+    C.purple,
+  );
+
+  metric(
+    ctx,
+    378,
+    306,
+    324,
+    'Ranking',
+    `#${fmt(rank)}`,
+    C.lime,
+  );
+
+  metric(
+    ctx,
+    724,
+    306,
+    324,
+    'Monety',
+    `${fmt(row.balance)} ◈`,
+    C.pink,
+  );
+
+
+  /* ACTIVITY */
+
+  divider(
+    ctx,
+    32,
+    445,
+    1016,
+  );
+
+  text(
+    ctx,
+    'AKTYWNOŚĆ',
+    34,
+    474,
+    10,
+    C.muted2,
+    true,
+  );
+
+  text(
+    ctx,
+    `WIADOMOŚCI  ${fmt(row.messages)}`,
+    135,
+    474,
+    12,
+    C.softWhite,
+    true,
+  );
+
+  text(
+    ctx,
+    `VC  ${Math.floor(Number(row.voice_seconds || 0) / 3600)} H`,
+    340,
+    474,
+    12,
+    C.softWhite,
+    true,
+  );
+
+  text(
+    ctx,
+    `${fmt(row.xp)} XP ŁĄCZNIE`,
+    1004,
+    474,
+    12,
+    C.muted,
+    true,
+    null,
+    'right',
+  );
+
+  return cv.toBuffer(
+    'image/png',
+  );
+}
+
+
+/* ─────────────────────────────────────────────────────────────
+   RANK CARD
+───────────────────────────────────────────────────────────── */
+
+export async function rankCard(
+  user,
+  row,
+  rank,
+) {
+  const {
+    cv,
+    ctx,
+  } = base(
+    1080,
+    420,
+    'RANKING / POSTĘP',
+  );
+
+  const progress =
+    progressForXp(
+      row.xp,
+    );
+
+
+  shadowCard(
+    ctx,
+    32,
+    92,
+    1016,
+    244,
+    22,
+  );
+
+  await avatar(
+    ctx,
+    user,
+    126,
+    193,
+    65,
+  );
+
+  text(
+    ctx,
+    user.name,
+    222,
+    146,
+    32,
+    C.white,
+    true,
+    490,
+  );
+
+  text(
+    ctx,
+    `@${user.username || user.name}`,
+    224,
+    178,
+    14,
+    C.muted,
+    false,
+    480,
+  );
+
+  text(
+    ctx,
+    `LV ${String(progress.level).padStart(2, '0')}`,
+    224,
+    226,
+    30,
+    C.lime,
+    true,
+  );
+
+
+  /* RANK BADGE */
+
+  round(
+    ctx,
+    830,
+    126,
+    170,
+    84,
+    16,
+    'rgba(157,92,255,.10)',
+    'rgba(157,92,255,.25)',
+  );
+
+  text(
+    ctx,
+    'MIEJSCE',
+    915,
+    156,
+    10,
+    C.muted,
+    true,
+    null,
+    'center',
+  );
+
+  text(
+    ctx,
+    `#${fmt(rank)}`,
+    915,
+    194,
+    29,
+    C.purple2,
+    true,
+    null,
+    'center',
+  );
+
+
+  /* XP */
+
+  text(
+    ctx,
+    'POSTĘP DO KOLEJNEGO POZIOMU',
+    224,
+    271,
+    11,
+    C.muted,
+    true,
+  );
+
+  text(
+    ctx,
+    `${Math.round(progress.fraction * 100)}%`,
+    999,
+    271,
+    11,
+    C.purple2,
+    true,
+    null,
+    'right',
+  );
+
+  progressBar(
+    ctx,
+    224,
+    286,
+    775,
+    18,
+    progress.fraction,
+    C.purple,
+    C.lime,
+  );
+
+  text(
+    ctx,
+    `${fmt(progress.current)} / ${fmt(progress.required)} XP`,
+    224,
+    327,
+    13,
+    C.softWhite,
+    true,
+  );
+
+
+  text(
+    ctx,
+    `${fmt(row.xp)} XP ŁĄCZNIE`,
+    999,
+    327,
+    13,
+    C.muted,
+    true,
+    null,
+    'right',
+  );
+
+
+  glowLine(
+    ctx,
+    275,
+    369,
+    530,
+  );
+
+  return cv.toBuffer(
+    'image/png',
+  );
+}
+
+
+/* ─────────────────────────────────────────────────────────────
+   ECONOMY CARD
+───────────────────────────────────────────────────────────── */
+
+export async function economyCard(
+  user,
+  row,
+  rank,
+  inventory = [],
+) {
+  const {
+    cv,
+    ctx,
+  } = base(
+    1080,
+    500,
+    'EKONOMIA / PORTFEL',
+  );
+
+  const inventoryCount =
+    inventory.reduce(
+      (
+        total,
+        item,
+      ) =>
+        total +
+        Number(
+          item.quantity || 0,
+        ),
+      0,
+    );
+
+
+  shadowCard(
+    ctx,
+    32,
+    94,
+    1016,
+    148,
+    22,
+  );
+
+  await avatar(
+    ctx,
+    user,
+    116,
+    169,
+    53,
+  );
+
+  text(
+    ctx,
+    user.name,
+    195,
+    145,
+    29,
+    C.white,
+    true,
+    480,
+  );
+
+  text(
+    ctx,
+    'SKARBIEC UŻYTKOWNIKA',
+    196,
+    179,
+    12,
+    C.purple2,
+    true,
+  );
+
+  text(
+    ctx,
+    `#${fmt(rank)}`,
+    1000,
+    152,
+    31,
+    C.pink,
+    true,
+    null,
+    'right',
+  );
+
+  text(
+    ctx,
+    'RANKING EKONOMII',
+    1000,
+    180,
+    10,
+    C.muted,
+    true,
+    null,
+    'right',
+  );
+
+
+  /* BALANCE */
+
+  shadowCard(
+    ctx,
+    32,
+    270,
+    655,
+    160,
+    22,
+    'rgba(20,19,33,.94)',
+  );
+
+  text(
+    ctx,
+    'SALDO KONTA',
+    60,
+    309,
+    12,
+    C.muted,
+    true,
+  );
+
+  text(
+    ctx,
+    `${fmt(row.balance)} ◈`,
+    58,
+    380,
+    48,
+    C.lime,
+    true,
+    590,
+  );
+
+  glowLine(
+    ctx,
+    60,
+    404,
+    355,
+    C.lime,
+  );
+
+
+  /* SIDE CARD */
+
+  shadowCard(
+    ctx,
+    711,
+    270,
+    337,
+    160,
+    22,
+  );
+
+  text(
+    ctx,
+    'PLECAK',
+    738,
+    308,
+    11,
+    C.muted,
+    true,
+  );
+
+  text(
+    ctx,
+    fmt(
+      inventoryCount,
+    ),
+    738,
+    359,
+    35,
+    C.white,
+    true,
+  );
+
+  text(
+    ctx,
+    inventoryCount === 1
+      ? 'PRZEDMIOT'
+      : 'PRZEDMIOTÓW',
+    738,
+    389,
+    11,
+    C.purple2,
+    true,
+  );
+
+  text(
+    ctx,
+    `#${fmt(rank)}`,
+    1019,
+    360,
+    27,
+    C.pink,
+    true,
+    null,
+    'right',
+  );
+
+  text(
+    ctx,
+    'POZYCJA',
+    1019,
+    389,
+    10,
+    C.muted,
+    true,
+    null,
+    'right',
+  );
+
+
+  /* COMMAND FOOTER */
+
+  text(
+    ctx,
+    '/daily',
+    34,
+    465,
+    12,
+    C.purple2,
+    true,
+  );
+
+  text(
+    ctx,
+    '/praca',
+    112,
+    465,
+    12,
+    C.softWhite,
+    true,
+  );
+
+  text(
+    ctx,
+    '/sklep',
+    194,
+    465,
+    12,
+    C.softWhite,
+    true,
+  );
+
+  text(
+    ctx,
+    '/przelew',
+    276,
+    465,
+    12,
+    C.softWhite,
+    true,
+  );
+
+  return cv.toBuffer(
+    'image/png',
+  );
+}
+
+
+/* ─────────────────────────────────────────────────────────────
+   TOP CARD
+───────────────────────────────────────────────────────────── */
+
+export async function topCard(
+  rows,
+  users,
+  kind = 'xp',
+) {
+  const rowHeight = 72;
+
+  const height =
+    188 +
+    rows.length * rowHeight;
+
+  const {
+    cv,
+    ctx,
+  } = base(
+    1080,
+    height,
+    kind === 'xp'
+      ? 'RANKING / DOŚWIADCZENIE'
+      : 'RANKING / EKONOMIA',
+  );
+
+  text(
+    ctx,
+    kind === 'xp'
+      ? 'TABLICA DOŚWIADCZENIA'
+      : 'TABLICA BOGACTWA',
+    38,
+    116,
+    29,
+    C.white,
+    true,
+  );
+
+  text(
+    ctx,
+    kind === 'xp'
+      ? 'Najaktywniejsi użytkownicy Wymiaru Zerqona'
+      : 'Najbogatsi użytkownicy Wymiaru Zerqona',
+    39,
+    144,
+    13,
+    C.muted,
+    false,
+  );
+
+
+  for (
+    let i = 0;
+    i < rows.length;
+    i++
+  ) {
+    const row =
+      rows[i];
+
+    const usr =
+      users[i] || {
+        name:
+          `Użytkownik ${row.user_id.slice(-5)}`,
+      };
+
+    const y =
+      166 +
+      i * rowHeight;
+
+    const podium =
+      i < 3;
+
+    const rankColor =
+      i === 0
+        ? C.gold
+        : i === 1
+          ? C.silver
+          : i === 2
+            ? C.bronze
+            : C.purple2;
+
+    shadowCard(
+      ctx,
+      35,
+      y,
+      1010,
+      60,
+      14,
+      podium
+        ? 'rgba(31,28,45,.96)'
+        : 'rgba(18,18,29,.93)',
+      podium
+        ? 'rgba(157,92,255,.27)'
+        : C.border,
+    );
+
+
+    /* PODIUM ACCENT */
+
+    ctx.fillStyle =
+      rankColor;
+
+    ctx.fillRect(
+      35,
+      y + 13,
+      3,
+      34,
+    );
+
+
+    text(
+      ctx,
+      `#${String(i + 1).padStart(2, '0')}`,
+      60,
+      y + 39,
+      19,
+      rankColor,
+      true,
+    );
+
+
+    await avatar(
+      ctx,
+      usr,
+      157,
+      y + 30,
+      19,
+      {
+        ring:
+          podium
+            ? rankColor
+            : C.purple,
+        glow: false,
+      },
+    );
+
+
+    text(
+      ctx,
+      usr.name,
+      198,
+      y + 37,
+      17,
+      C.white,
+      true,
+      450,
+    );
+
+
+    if (
+      kind === 'xp'
+    ) {
+      text(
+        ctx,
+        `LV ${levelForXp(row.xp)}`,
+        725,
+        y + 37,
+        15,
+        C.purple2,
+        true,
+      );
+
+      text(
+        ctx,
+        `${fmt(row.xp)} XP`,
+        1016,
+        y + 37,
+        16,
+        C.lime,
+        true,
+        null,
+        'right',
+      );
+    } else {
+      text(
+        ctx,
+        `${fmt(row.balance)} ◈`,
+        1016,
+        y + 37,
+        17,
+        C.lime,
+        true,
+        null,
+        'right',
+      );
+    }
+  }
+
+  return cv.toBuffer(
+    'image/png',
+  );
+}
+
+
+/* ─────────────────────────────────────────────────────────────
+   WELCOME CARD
+───────────────────────────────────────────────────────────── */
+
+export async function welcomeCard(
+  user,
+  memberCount,
+) {
+  const {
+    cv,
+    ctx,
+  } = base(
+    1080,
+    430,
+    'NOWY UŻYTKOWNIK / WITAJ',
+  );
+
+
+  /* MAIN PANEL */
+
+  shadowCard(
+    ctx,
+    32,
+    92,
+    1016,
+    267,
+    24,
+    'rgba(15,15,25,.84)',
+  );
+
+
+  /* AVATAR */
+
+  await avatar(
+    ctx,
+    user,
+    164,
+    223,
+    82,
+  );
+
+
+  /* CONTENT */
+
+  text(
+    ctx,
+    'WITAJ W WYMIARZE ZERQONA',
+    290,
+    151,
+    16,
+    C.purple2,
+    true,
+  );
+
+  text(
+    ctx,
+    user.name,
+    290,
+    210,
+    38,
+    C.white,
+    true,
+    690,
+  );
+
+  text(
+    ctx,
+    `Jesteś osobą numer #${fmt(memberCount)} na serwerze.`,
+    291,
+    251,
+    16,
+    C.muted,
+    false,
+    680,
+  );
+
+
+  /* WELCOME TAGS */
+
+  round(
+    ctx,
+    290,
+    286,
+    142,
+    34,
+    10,
+    'rgba(157,92,255,.10)',
+    'rgba(157,92,255,.24)',
+  );
+
+  text(
+    ctx,
+    '◆ ZBIERAJ XP',
+    306,
+    309,
+    11,
+    C.purple2,
+    true,
+  );
+
+
+  round(
+    ctx,
+    444,
+    286,
+    150,
+    34,
+    10,
+    'rgba(191,255,105,.07)',
+    'rgba(191,255,105,.18)',
+  );
+
+  text(
+    ctx,
+    '◆ BĄDŹ AKTYWNY',
+    460,
+    309,
+    11,
+    C.lime,
+    true,
+  );
+
+
+  round(
+    ctx,
+    606,
+    286,
+    170,
+    34,
+    10,
+    'rgba(235,106,214,.07)',
+    'rgba(235,106,214,.18)',
+  );
+
+  text(
+    ctx,
+    '◆ BUDUJ LEGENDĘ',
+    622,
+    309,
+    11,
+    C.pink,
+    true,
+  );
+
+
+  glowLine(
+    ctx,
+    295,
+    346,
+    570,
+  );
+
+  return cv.toBuffer(
+    'image/png',
+  );
+}
+
+
+/* ─────────────────────────────────────────────────────────────
+   USER NORMALIZER
+───────────────────────────────────────────────────────────── */
+
+export const userForCard =
+  (member) => ({
+    name:
+      member.displayName ||
+      member.globalName ||
+      member.username,
+
+    username:
+      member.user?.username ||
+      member.username,
+
+    avatarURL:
+      member.displayAvatarURL?.({
+        extension: 'png',
+        size: 256,
+      }) ||
+      member.user?.displayAvatarURL?.({
+        extension: 'png',
+        size: 256,
+      }),
+  });
