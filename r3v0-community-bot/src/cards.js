@@ -220,6 +220,75 @@ function text(
   ctx.textAlign = 'left';
 }
 
+
+function wrapText(
+  ctx,
+  value,
+  x,
+  y,
+  maxWidth,
+  lineHeight,
+  maxLines = 2,
+  size = 11,
+  color = C.muted,
+  bold = false,
+) {
+  const words = String(value ?? '').split(/\s+/).filter(Boolean);
+
+  font(ctx, size, bold);
+  ctx.fillStyle = color;
+  ctx.textBaseline = 'alphabetic';
+  ctx.textAlign = 'left';
+
+  const lines = [];
+  let current = '';
+
+  for (const word of words) {
+    const candidate = current ? `${current} ${word}` : word;
+
+    if (ctx.measureText(candidate).width <= maxWidth) {
+      current = candidate;
+      continue;
+    }
+
+    if (current) lines.push(current);
+    current = word;
+
+    if (lines.length >= maxLines) break;
+  }
+
+  if (current && lines.length < maxLines) {
+    lines.push(current);
+  }
+
+  if (lines.length === maxLines) {
+    const consumed = lines.join(' ').split(/\s+/).length;
+
+    if (consumed < words.length) {
+      let last = lines[maxLines - 1];
+
+      while (
+        last.length &&
+        ctx.measureText(`${last}…`).width > maxWidth
+      ) {
+        last = last.slice(0, -1);
+      }
+
+      lines[maxLines - 1] = `${last}…`;
+    }
+  }
+
+  lines.forEach((lineValue, index) => {
+    ctx.fillText(
+      lineValue,
+      x,
+      y + index * lineHeight,
+    );
+  });
+
+  return lines.length;
+}
+
 function shadowCard(
   ctx,
   x,
@@ -2094,6 +2163,687 @@ export async function welcomeCard(
     295,
     346,
     570,
+  );
+
+  return cv.toBuffer(
+    'image/png',
+  );
+}
+
+
+
+/* ─────────────────────────────────────────────────────────────
+   SHOP CARD
+───────────────────────────────────────────────────────────── */
+
+export async function shopCard(
+  shopItems,
+  balance = 0,
+) {
+  const entries = Object.entries(
+    shopItems || {},
+  );
+
+  const columns = 2;
+  const cardWidth = 497;
+  const cardHeight = 190;
+  const gapX = 16;
+  const gapY = 16;
+
+  const rows = Math.max(
+    1,
+    Math.ceil(entries.length / columns),
+  );
+
+  const startY = 275;
+
+  const height =
+    startY +
+    rows * (cardHeight + gapY) +
+    80;
+
+  const {
+    cv,
+    ctx,
+  } = base(
+    1080,
+    height,
+    'SKLEP / WYMIAR ZERQONA',
+  );
+
+
+  /* ─────────────────────────────────────────────────────────
+     HEADER
+  ───────────────────────────────────────────────────────── */
+
+  text(
+    ctx,
+    'SKLEP WYMIARU ZERQONA',
+    38,
+    112,
+    30,
+    C.white,
+    true,
+  );
+
+  text(
+    ctx,
+    'Boosty, tytuły i przedmioty kosmetyczne dla Twojego profilu.',
+    39,
+    142,
+    13,
+    C.muted,
+    false,
+    630,
+  );
+
+
+  /* BALANCE */
+
+  shadowCard(
+    ctx,
+    756,
+    88,
+    289,
+    91,
+    18,
+    'rgba(17,17,29,.95)',
+    'rgba(191,255,105,.15)',
+  );
+
+  text(
+    ctx,
+    'TWOJE SALDO',
+    780,
+    118,
+    10,
+    C.muted,
+    true,
+  );
+
+  text(
+    ctx,
+    `${fmt(balance)} ◈`,
+    780,
+    157,
+    27,
+    C.lime,
+    true,
+    238,
+  );
+
+
+  /* ─────────────────────────────────────────────────────────
+     SHOP SUMMARY
+  ───────────────────────────────────────────────────────── */
+
+  const boostCount = entries.filter(
+    ([, item]) =>
+      item.category === 'boost' ||
+      item.type === 'consumable',
+  ).length;
+
+  const titleCount = entries.filter(
+    ([, item]) =>
+      item.category === 'title' ||
+      item.type === 'title',
+  ).length;
+
+  shadowCard(
+    ctx,
+    35,
+    183,
+    1010,
+    68,
+    16,
+    'rgba(15,15,25,.82)',
+  );
+
+  text(
+    ctx,
+    'KATALOG',
+    57,
+    211,
+    9,
+    C.muted,
+    true,
+  );
+
+  text(
+    ctx,
+    `${entries.length} PRZEDMIOTÓW`,
+    57,
+    235,
+    14,
+    C.white,
+    true,
+  );
+
+  line(
+    ctx,
+    220,
+    199,
+    220,
+    236,
+    'rgba(255,255,255,.08)',
+  );
+
+  text(
+    ctx,
+    'BOOSTY',
+    248,
+    211,
+    9,
+    C.muted,
+    true,
+  );
+
+  text(
+    ctx,
+    `${boostCount}`,
+    248,
+    235,
+    14,
+    C.purple2,
+    true,
+  );
+
+  line(
+    ctx,
+    360,
+    199,
+    360,
+    236,
+    'rgba(255,255,255,.08)',
+  );
+
+  text(
+    ctx,
+    'TYTUŁY',
+    388,
+    211,
+    9,
+    C.muted,
+    true,
+  );
+
+  text(
+    ctx,
+    `${titleCount}`,
+    388,
+    235,
+    14,
+    C.pink,
+    true,
+  );
+
+  text(
+    ctx,
+    '/kup  •  /plecak  •  /uzyj',
+    1018,
+    226,
+    11,
+    C.muted,
+    true,
+    null,
+    'right',
+  );
+
+
+  /* ─────────────────────────────────────────────────────────
+     ITEM CARDS
+  ───────────────────────────────────────────────────────── */
+
+  const rarityMap = {
+    common: {
+      name: 'COMMON',
+      color: '#A7A7B6',
+    },
+    rare: {
+      name: 'RARE',
+      color: '#6EA8FF',
+    },
+    epic: {
+      name: 'EPIC',
+      color: '#B56CFF',
+    },
+    legendary: {
+      name: 'LEGENDARY',
+      color: '#FFB74D',
+    },
+    mythic: {
+      name: 'MYTHIC',
+      color: '#FF6ACD',
+    },
+  };
+
+  for (
+    let index = 0;
+    index < entries.length;
+    index++
+  ) {
+    const [
+      id,
+      item,
+    ] = entries[index];
+
+    const column = index % columns;
+    const rowIndex = Math.floor(index / columns);
+
+    const x =
+      35 +
+      column * (cardWidth + gapX);
+
+    const y =
+      startY +
+      rowIndex * (cardHeight + gapY);
+
+    const rarity = String(
+      item.rarity ||
+      (item.type === 'consumable' ? 'rare' : 'epic'),
+    ).toLowerCase();
+
+    const rarityInfo =
+      rarityMap[rarity] ||
+      rarityMap.epic;
+
+    const accent =
+      rarityInfo.color;
+
+    const isBoost =
+      item.category === 'boost' ||
+      item.type === 'consumable';
+
+    const typeLabel =
+      isBoost
+        ? 'BOOST'
+        : 'TYTUŁ';
+
+    const displayName =
+      item.shortName ||
+      item.name ||
+      id;
+
+    const effect =
+      item.effect ||
+      item.effectLabel ||
+      (isBoost
+        ? 'Bonus czasowy'
+        : 'Tytuł profilu');
+
+    const duration =
+      item.duration ||
+      item.durationLabel ||
+      (isBoost
+        ? 'Jednorazowy'
+        : 'Na stałe');
+
+    const details = Array.isArray(item.details)
+      ? item.details
+      : [];
+
+
+    /* CARD */
+
+    shadowCard(
+      ctx,
+      x,
+      y,
+      cardWidth,
+      cardHeight,
+      18,
+      'rgba(16,16,27,.95)',
+      rarity === 'mythic'
+        ? 'rgba(255,106,205,.30)'
+        : rarity === 'legendary'
+          ? 'rgba(255,183,77,.25)'
+          : rarity === 'epic'
+            ? 'rgba(181,108,255,.22)'
+            : rarity === 'rare'
+              ? 'rgba(110,168,255,.20)'
+              : C.border,
+    );
+
+
+    /* RARITY STRIP */
+
+    const strip =
+      ctx.createLinearGradient(
+        x,
+        y,
+        x,
+        y + cardHeight,
+      );
+
+    strip.addColorStop(
+      0,
+      accent,
+    );
+
+    strip.addColorStop(
+      1,
+      'rgba(255,255,255,0)',
+    );
+
+    ctx.fillStyle = strip;
+
+    ctx.fillRect(
+      x,
+      y + 18,
+      3,
+      cardHeight - 36,
+    );
+
+
+    /* ICON */
+
+    round(
+      ctx,
+      x + 20,
+      y + 21,
+      59,
+      59,
+      16,
+      'rgba(255,255,255,.035)',
+      'rgba(255,255,255,.075)',
+    );
+
+    text(
+      ctx,
+      item.icon || (isBoost ? '✦' : '◆'),
+      x + 49,
+      y + 61,
+      25,
+      accent,
+      true,
+      null,
+      'center',
+    );
+
+
+    /* NAME + RARITY */
+
+    text(
+      ctx,
+      displayName,
+      x + 96,
+      y + 39,
+      16,
+      C.white,
+      true,
+      250,
+    );
+
+    text(
+      ctx,
+      rarityInfo.name,
+      x + 96,
+      y + 61,
+      9,
+      accent,
+      true,
+    );
+
+
+    /* PRICE */
+
+    text(
+      ctx,
+      `${fmt(item.price)} ◈`,
+      x + cardWidth - 19,
+      y + 39,
+      16,
+      C.lime,
+      true,
+      125,
+      'right',
+    );
+
+
+    /* TAGS */
+
+    round(
+      ctx,
+      x + 96,
+      y + 72,
+      70,
+      24,
+      7,
+      'rgba(157,92,255,.08)',
+      'rgba(157,92,255,.18)',
+    );
+
+    text(
+      ctx,
+      typeLabel,
+      x + 131,
+      y + 88,
+      8,
+      C.purple2,
+      true,
+      null,
+      'center',
+    );
+
+    round(
+      ctx,
+      x + 174,
+      y + 72,
+      Math.min(
+        176,
+        Math.max(92, effect.length * 6.2),
+      ),
+      24,
+      7,
+      'rgba(255,255,255,.035)',
+      'rgba(255,255,255,.07)',
+    );
+
+    text(
+      ctx,
+      effect,
+      x + 185,
+      y + 88,
+      8,
+      C.softWhite,
+      true,
+      154,
+    );
+
+
+    /* DESCRIPTION */
+
+    wrapText(
+      ctx,
+      item.description || 'Przedmiot dostępny w sklepie.',
+      x + 20,
+      y + 119,
+      cardWidth - 40,
+      15,
+      2,
+      10,
+      C.muted,
+      false,
+    );
+
+
+    /* DETAILS */
+
+    if (details.length) {
+      const detailText =
+        details
+          .slice(0, 2)
+          .map((value) => `◆ ${value}`)
+          .join('   ');
+
+      text(
+        ctx,
+        detailText,
+        x + 20,
+        y + 157,
+        8,
+        C.muted2,
+        false,
+        cardWidth - 40,
+      );
+    }
+
+
+    /* FOOTER */
+
+    divider(
+      ctx,
+      x + 20,
+      y + 166,
+      cardWidth - 40,
+    );
+
+    text(
+      ctx,
+      `ID: ${id}`,
+      x + 20,
+      y + 183,
+      8,
+      C.muted2,
+      false,
+      235,
+    );
+
+    text(
+      ctx,
+      duration,
+      x + cardWidth - 20,
+      y + 183,
+      8,
+      accent,
+      true,
+      190,
+      'right',
+    );
+  }
+
+
+  /* EMPTY SHOP */
+
+  if (!entries.length) {
+    shadowCard(
+      ctx,
+      35,
+      startY,
+      1010,
+      150,
+      20,
+    );
+
+    text(
+      ctx,
+      'BRAK PRZEDMIOTÓW',
+      540,
+      startY + 65,
+      22,
+      C.white,
+      true,
+      null,
+      'center',
+    );
+
+    text(
+      ctx,
+      'Katalog sklepu jest obecnie pusty.',
+      540,
+      startY + 95,
+      12,
+      C.muted,
+      false,
+      null,
+      'center',
+    );
+  }
+
+
+  /* ─────────────────────────────────────────────────────────
+     FOOTER
+  ───────────────────────────────────────────────────────── */
+
+  const footerY = height - 42;
+
+  divider(
+    ctx,
+    35,
+    footerY - 27,
+    1010,
+  );
+
+  text(
+    ctx,
+    '/kup',
+    36,
+    footerY,
+    11,
+    C.purple2,
+    true,
+  );
+
+  text(
+    ctx,
+    'KUP PRZEDMIOT',
+    82,
+    footerY,
+    9,
+    C.muted,
+    true,
+  );
+
+  text(
+    ctx,
+    '/plecak',
+    220,
+    footerY,
+    11,
+    C.purple2,
+    true,
+  );
+
+  text(
+    ctx,
+    'TWÓJ EKWIPUNEK',
+    288,
+    footerY,
+    9,
+    C.muted,
+    true,
+  );
+
+  text(
+    ctx,
+    '/uzyj',
+    451,
+    footerY,
+    11,
+    C.purple2,
+    true,
+  );
+
+  text(
+    ctx,
+    'AKTYWUJ PRZEDMIOT',
+    504,
+    footerY,
+    9,
+    C.muted,
+    true,
+  );
+
+  text(
+    ctx,
+    'WYMIAR ZERQONA • MARKET',
+    1027,
+    footerY,
+    9,
+    C.muted2,
+    true,
+    null,
+    'right',
   );
 
   return cv.toBuffer(
