@@ -1,0 +1,21 @@
+{
+  "name": "r3v0-community-bot",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Discord community bot: levels, economy, graphics, moderation, logs and temporary voice rooms",
+  "engines": { "node": ">=24.17.0" },
+  "scripts": {
+    "start": "node src/index.js",
+    "deploy": "node src/register.js",
+    "test": "node --test tests/*.test.js",
+    "preview": "node scripts/preview.js",
+    "check": "node --check src/index.js && node --check src/commands.js && node --check src/voice.js && node --check src/logs.js"
+  },
+  "dependencies": {
+    "@napi-rs/canvas": "^0.1.90",
+    "better-sqlite3": "^12.4.1",
+    "discord.js": "^14.27.0",
+    "dotenv": "^17.2.3"
+  }
+}
