@@ -1,0 +1,29 @@
+{
+  "name": "wymiar-zerqona-bot",
+  "version": "4.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Wymiar ZERQONA — profesjonalny community bot z rysunkowymi kartami, ekonomią, levelingiem i moderacją",
+  "engines": {
+    "node": ">=22.16.0"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "deploy": "node src/register.js",
+    "test": "node --test tests/*.test.js",
+    "preview": "node scripts/preview.js",
+    "check": "node scripts/check.js",
+    "docs": "node scripts/docs.js",
+    "verify": "npm run check && npm test",
+    "deploy:clean": "node src/register.js --clean",
+    "commands:status": "node src/register.js --status",
+    "commands:clear": "node src/register.js --clear-all",
+    "commands:reset": "node src/register.js --clean"
+  },
+  "dependencies": {
+    "@napi-rs/canvas": "^0.1.90",
+    "better-sqlite3": "^12.4.1",
+    "discord.js": "^14.27.0",
+    "dotenv": "^17.2.3"
+  }
+}
