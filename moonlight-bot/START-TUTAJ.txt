@@ -1,0 +1,30 @@
+MOONLIGHT — BOT DISCORD
+
+WERSJA 1.1.1: poprawione logi po polsku, bez surowego JSON.
+28 komend. Właściciel po ID: 1488470377993736234.
+Nowy welcome: 1559306598927704135. Sprawdź /uprawnienia po wdrożeniu.
+Przy aktualizacji wymień też config.json, ale zachowaj Variables i Volume.
+Nowe komendy moderacji wymagają Kick Members i Manage Nicknames dla bota.
+
+RAILWAY: otwórz RAILWAY.md — gotowy Dockerfile, automatyczna rejestracja
+komend, wymagane Variables oraz trwały Volume /app/data.
+
+START LOKALNY:
+
+1. Zainstaluj Node.js 22.18 lub nowszy.
+2. Skopiuj .env.example jako .env. Wpisz TOKEN, CLIENT_ID i GUILD_ID.
+3. W Developer Portal włącz Server Members Intent i Message Content Intent.
+4. Zaproś bota: bot + applications.commands. Uprawnienia są opisane w README.md.
+5. Przenieś rolę bota nad nadawane role i moderowanych użytkowników.
+6. W terminalu, w folderze projektu:
+
+   npm ci
+   npm run deploy
+   npm start
+
+7. Na Discordzie: /konfiguracja, /powitanie-test, /regulamin.
+
+/regulamin opublikuje gotowy embed w kanale 1515442667750948914.
+Kod nie został podłączony do Twojego serwera — nie dostarczono tokenu.
+Pełna instrukcja, role, poziomy, komendy i ograniczenia: README.md.
+Nie udostępniaj tokenu ani pliku .env. Zachowuj kopie data/bot.sqlite.
