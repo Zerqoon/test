@@ -1,0 +1,10 @@
+WIDMO BOT 4.0.4 — FIX SQLITE BIND W AUTOMOD
+
+- Naprawiono błąd `Provided value cannot be bound to SQLite parameter 2` w src/automod.js.
+- AutoMod korzysta z `message.channelId` lub awaryjnie `message.channel.id`.
+- Gdy częściowa wiadomość nie zawiera ID kanału, pomija lookup ticketu zamiast przekazywać undefined do SQLite. W takim przypadku wiadomość nie jest traktowana jako ticket.
+- Zachowano zasady moderacji linków i zaproszeń Discord.
+- Dodano test regresji dla wiadomości bez channelId.
+- Wersja projektu i lockfile: 4.0.4.
+
+Wdrożenie: wgraj zawartość ZIP do katalogu głównego repozytorium i uruchom nowy deploy Railway z builderem Dockerfile.

@@ -1,0 +1,10 @@
+WIDMO BOT 4.0.3 — FIX TESTÓW I RAILWAY
+
+- Test runner używa teraz stałych, izolowanych ID serwera i właściciela bota; zmienne produkcyjne Railway nie zmieniają wyników testów.
+- Konfiguracja testowa wymusza tę samą tożsamość serwera/właściciela we wszystkich modułach.
+- Zaktualizowane testy korzystają z obecnych ról Moderator/Admin/Owner, bez starej roli Helper i nazwy Szef.
+- Tabela widmo_tickets jest tworzona centralnie w src/db.js, zanim AutoMod wykonuje zapytanie.
+- Dodano regresyjne testy pakowania dla tych trzech usterek.
+- Wersje package.json oraz package-lock.json ustawione na 4.0.3.
+
+Nie pominięto testów ani nie zmieniono skryptu npm test na sukces bez uruchamiania asercji.
