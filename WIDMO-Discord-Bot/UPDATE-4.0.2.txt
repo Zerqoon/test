@@ -1,8 +1,0 @@
-WIDMO BOT 4.0.2 — POPRAWKI BUILDÓW I TESTÓW
-
-- Dopasowano testy uprawnień do faktycznej konfiguracji ról Moderator/Admin/Owner. Rola Helper nie jest tworzona ani wymagana.
-- Ujednolicono komunikaty komend do nazewnictwa Admin/Owner.
-- Zainicjalizowano tabelę widmo_tickets w module bazy danych, aby AutoMod działał niezależnie od kolejności importów.
-- Wersje package.json i package-lock.json są zgodne.
-
-Walidacja lokalna: składnia wszystkich plików JS OK, JSON OK, 26 testów helperów/regresji niezależnych od discord.js przeszło. Pełny npm test nie został uruchomiony, ponieważ npm ci nie pobrał zależności w środowisku roboczym.
