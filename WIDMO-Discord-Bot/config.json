@@ -1,0 +1,84 @@
+{
+  "serverName": "WIDMO",
+  "color": "#F2F2F2",
+  "cards": {
+    "backgroundBlur": 18
+  },
+  "ownerIds": [
+    "1488470377993736234"
+  ],
+  "channels": {
+    "welcome": "1559306598927704135",
+    "voiceCreator": "1516765981244915825",
+    "messages": "1517117542223839353",
+    "members": "1517117609617915934",
+    "moderation": "1517117642794602516",
+    "levels": "1559306736433766500",
+    "rules": "",
+    "actions": "1517117642794602516",
+    "ticketPanel": "1563956514417414315",
+    "rolesPanel": "",
+    "suggestions": "1563957007126626384",
+    "voiceLogs": "1517117569566507029"
+  },
+  "roles": {
+    "auto": [
+      "1517118754037698631",
+      "1516502263944839359",
+      "1516502180759212112"
+    ],
+    "owner": "1515440522225913926",
+    "admin": "1563993794536284190",
+    "moderator": "1516499895434088508",
+    "booster": "1515748354426933269",
+    "veteran": "1517165022151704626",
+    "levels": {},
+    "selfAssignable": []
+  },
+  "xp": {
+    "messageMin": 10,
+    "messageMax": 16,
+    "messageCooldownSeconds": 60,
+    "minMessageLength": 8,
+    "voicePerTick": 20,
+    "voiceIntervalSeconds": 300,
+    "voiceMinHumans": 2,
+    "boosterMultiplier": 1.5
+  },
+  "automod": {
+    "imageMinLevel": 5,
+    "linkMinLevel": 10,
+    "allowedDomains": [
+      "giphy.com",
+      "gph.is",
+      "tenor.com",
+      "roblox.com",
+      "youtube.com",
+      "youtu.be",
+      "tiktok.com",
+      "clips.twitch.tv",
+      "medal.tv"
+    ],
+    "noticeSeconds": 8
+  },
+  "voice": {
+    "createDelayMs": 5000,
+    "namePrefix": "・",
+    "categoryId": "",
+    "maxPerGuild": 40,
+    "emptyDeleteDelayMs": 5000
+  },
+  "logging": {
+    "retentionDays": 7,
+    "maxSnapshots": 100000
+  },
+  "giveaways": {
+    "maxDurationDays": 30,
+    "maxWinners": 20
+  },
+  "tickets": {
+    "categoryId": "1563987770391924777",
+    "maxOpenPerUser": 2,
+    "transcriptLimit": 500
+  }
+}
